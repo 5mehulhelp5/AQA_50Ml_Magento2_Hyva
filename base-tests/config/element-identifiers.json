@@ -36,13 +36,13 @@
     "addToWishlistButtonLabel": "Añadir a la Lista de Deseos",
     "simpleProductTitle": "Spray Medium Protection SPF 15",
     "secondSimpleProducTitle": "Aim Analog Watch",
-    "simpleProductPrice": ".final-price .price-wrapper .price",
+    "simpleProductPrice": ".price",
     "configurableProductTitle": "Inez Full Zip Jacket",
     "configurableProductSizeLabel": "Size",
     "configurableProductColorLabel": "Color",
     "configurableProductOptionForm": "#product_addtocart_form",
     "configurableProductOptionValue": ".product-option-value-label",
-    "quantityFieldLabel": "Quantity",
+    "quantityFieldLabel": "Cantidad",
     "fullScreenOpenLabel": "Click to view image in",
     "fullScreenCloseLabel": "Close fullscreen",
     "thumbnailImageLabel": "View larger image",
@@ -69,12 +69,15 @@
   "cart": {
     "applyDiscountButtonLabel": "Apply Discount",
     "cancelCouponButtonLabel": "Cancel Coupon",
-    "cartTitleText": "Shopping Cart",
-    "cartQuantityLabel": "Qty",
+    "cartTitleText": "Carrito",
+    "cartQuantityLabel": "Cantidad",
     "discountInputFieldLabel": "Enter discount code",
-    "showDiscountFormButtonLabel": "Apply Discount Code",
+    "showDiscountFormButtonLabel": "Aplicar Código de Descuento",
     "updateItemButtonLabel": "shopping-cart Update item",
-    "updateShoppingCartButtonLabel": "Update Shopping Cart"
+    "updateShoppingCartButtonLabel": "Update Shopping Cart",
+    "removeProductButtonPrefix": "Remove product",
+    "increaseQuantityButton": "Aumentar cantidad",
+    "decreaseQuantityButton": "Disminuir cantidad"
   },
   "cartPriceRulesPage": {
     "actionsSubtitleLabel": "Actions",
@@ -151,7 +154,7 @@
     "errorMessageLocator": "div.message.error",
     "errorMessageRequiredFieldText": "This is a required field",
     "genericPriceLabel": "Price",
-    "genericPriceSymbol": "$",
+    "genericPriceSymbol": "€",
     "genericSaveButtonLabel": "Save",
     "genericSubmitButtonLabel": "Submit",
     "messageLocator": "div.message",
@@ -180,18 +183,18 @@
     "myAccountLogoutItem": "Cerrar sesión"
   },
   "miniCart": {
-    "checkOutButtonLabel": "Checkout",
+    "checkOutButtonLabel": "Ir a la caja",
     "editProductIconLabel": "Edit product",
     "minicartButtonLocator": "#menu-cart-icon",
     "minicartAmountBubbleLocator": "#menu-cart-icon > span",
-    "minicartPriceFieldClass": ".price-excluding-tax .minicart-price .price",
+    "minicartPriceFieldClass": ".price-including-tax .minicart-price .price",
     "miniCartToggleLabelEmpty": "Cart is empty",
     "miniCartToggleLabelMultiItem": "items",
     "miniCartToggleLabelOneItem": "1 item",
     "miniCartToggleLabelPrefix": "Toggle minicart,",
     "productQuantityFieldLabel": "Quantity",
     "removeProductIconLabel": "Remove product",
-    "toCartLinkLabel": "View and Edit Cart"
+    "toCartLinkLabel": "Ver y editar carrito"
   },
   "search": {
     "searchToggleLocator": "#menu-search-icon",

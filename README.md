@@ -1,8 +1,8 @@
-# 🎭 Paxento Playwright Test Automation
+# Paxento Playwright Test Automation
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # 1. Install dependencies
@@ -13,7 +13,7 @@ npm install
 
 ---
 
-## 🧰 Common Commands
+## Common Commands
 
 | Command | Description |
 |--------|-------------|
@@ -28,13 +28,13 @@ npm install
 
 ---
 
-## 📚 Test Documentation
+## Test Documentation
 
 Complete test case documentation available in [Google Sheets](https://docs.google.com/spreadsheets/d/1xt-R_TMI8m4pwc06IScTNkHYcit70RyqEmY88BAlHAM/edit?gid=0#gid=0)
 
 ---
 
-## ⚙️ Requirements
+## Requirements
 
 - Node.js **20+**
 - npm

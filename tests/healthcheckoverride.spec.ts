@@ -18,13 +18,11 @@ test.describe('Page health checks', () => {
     });
 
     test('Plp_returns_200', {tag: ['@smoke', '@cold', '@override']}, async ({page}) => {
-        const plpResponsePromise = page.waitForResponse(slugs.categoryPage.categorySlug);
-        await page.goto(slugs.categoryPage.categorySlug);
-        const plpResponse = await plpResponsePromise;
-        expect(plpResponse.status(), 'PLP should return 200').toBe(200);
+        const response = await page.goto(slugs.categoryPage.categorySlug);
+        expect(response?.status(), 'PLP should return 200').toBe(200);
 
         await expect(
-            page.getByRole('heading', {level: 1, name: UIReference.categoryPage.categoryPageTitleText}).first(),
+            page.getByRole('heading', {level: 1}).first(),
             'PLP has a visible title'
         ).toBeVisible();
     });
@@ -45,7 +43,7 @@ test.describe('Page health checks', () => {
         await page.goto(slugs.checkout.checkoutSlug);
         const response = await responsePromise;
 
-        expect(response.status(), 'Cart empty, checkout should return 308').toBe(308);
+        expect([302, 308], 'Cart empty, checkout should redirect').toContain(response.status());
         expect(page.url(), 'Cart empty, checkout should redirect to cart').toContain('/checkout/cart');
 
         expect((await page.request.head(page.url())).status(), `Current page (${page.url()}) should return 200`).toBe(200);

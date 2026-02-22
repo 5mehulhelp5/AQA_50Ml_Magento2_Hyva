@@ -4,7 +4,7 @@
  * This file is used to set up the CAPTCHA bypass for your tests.
  * It will set the global cookie to bypass CAPTCHA for Magento 2.
  * See: https://github.com/elgentos/magento2-bypass-captcha-cookie
- * 
+ *
  */
 
 import { FullConfig } from '@playwright/test';
@@ -28,7 +28,7 @@ async function globalSetup(config: FullConfig) {
         await context.addCookies([{
           name: 'disable_captcha', // this cookie will be read by 'magento2-bypass-captcha-cookie' module.
           value: '', // Fill with generated token.
-          domain: 'hyva-demo.elgentos.io', // Replace with your domain
+          domain: 'mcstaging.50-ml.es',
           path: '/',
           httpOnly: true,
           secure: true,

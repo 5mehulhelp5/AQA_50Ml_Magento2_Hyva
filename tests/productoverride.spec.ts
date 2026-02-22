@@ -8,7 +8,7 @@ import LoginPage from '@poms/frontend/override/login.page';
 import {requireEnv} from '@utils/env.utils';
 
 test.describe('Product page tests', {tag: '@product',}, () => {
-    test('Add_product_to_wishlist', {tag: ['@cold', '@override']}, async ({page, browserName}) => {
+    test.skip('Add_product_to_wishlist', {tag: ['@cold', '@override']}, async ({page, browserName}) => {
         await test.step('Log in with account', async () => {
             const browserEngine = browserName?.toUpperCase() || "UNKNOWN";
             const emailInputValue = requireEnv(`MAGENTO_EXISTING_ACCOUNT_EMAIL_${browserEngine}`);

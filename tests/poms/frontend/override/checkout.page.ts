@@ -4,9 +4,8 @@ import {expect, type Locator, type Page} from '@playwright/test';
 import {faker} from '@faker-js/faker';
 import {UIReference, outcomeMarker, slugs, inputValues} from '@config';
 
-import MagewireUtils from '@utils/magewire.utils';
-
-class CheckoutPage extends MagewireUtils {
+class CheckoutPage {
+    readonly page: Page;
 
     readonly shippingMethodOptionFixed: Locator;
     readonly paymentMethodOptionCheck: Locator;
@@ -25,16 +24,16 @@ class CheckoutPage extends MagewireUtils {
     readonly creditCardNameField: Locator;
 
     constructor(page: Page) {
-        super(page);
+        this.page = page;
         this.shippingMethodOptionFixed = this.page.getByLabel(UIReference.checkout.shippingMethodFixedLabel);
         this.paymentMethodOptionCheck = this.page.getByLabel(UIReference.checkout.paymentOptionCheckLabel);
         this.showDiscountFormButton = this.page.getByRole('button', {name: UIReference.checkout.openDiscountFormLabel});
         this.placeOrderButton = this.page.getByRole('button', {name: UIReference.checkout.placeOrderButtonLabel});
         this.continueShoppingButton = this.page.getByRole('link', {name: UIReference.checkout.continueShoppingLabel});
-        this.subtotalElement = page.getByText('Subtotal $');
-        this.shippingElement = page.getByText('Shipping & Handling (Flat Rate - Fixed) $');
-        this.taxElement = page.getByText('Tax $');
-        this.grandTotalElement = page.getByText('Grand Total $');
+        this.subtotalElement = page.getByText('Subtotal');
+        this.shippingElement = page.getByText('Envío y manipulación');
+        this.taxElement = page.getByText('Impuestos');
+        this.grandTotalElement = page.getByText('Total general');
         this.paymentMethodOptionCreditCard = this.page.getByLabel(UIReference.checkout.paymentOptionCreditCardLabel);
         this.paymentMethodOptionPaypal = this.page.getByLabel(UIReference.checkout.paymentOptionPaypalLabel);
         this.creditCardNumberField = this.page.getByLabel(UIReference.checkout.creditCardNumberLabel);
@@ -57,26 +56,38 @@ class CheckoutPage extends MagewireUtils {
 
         await this.acceptAllCookies();
 
-        await this.fillShippingAddress();
-        await this.paymentMethodOptionCheck.check();
-        await this.page.locator('input#agreement_6[type="checkbox"]').check();
-        await this.placeOrderButton.click();
-
-        try {
-            await this.page.locator('h1:has-text("¡Gracias por comprar en 50 ml!")').waitFor({
-                state: 'visible',
-                timeout: 30000
-            });
-            console.log('Success page loaded!');
-        } catch (error) {
-            await this.page.locator('p:has-text("Número de pedido:")').waitFor({state: 'visible', timeout: 30000});
-            console.log('Order number found!');
+        // Check if guest checkout - email field visible
+        const emailField = this.page.getByRole('textbox', { name: /Dirección de correo electrónico/i });
+        if (await emailField.isVisible({ timeout: 2000 })) {
+            // Guest checkout - need to fill shipping address
+            await this.fillShippingAddress();
         }
 
-        const orderNumberElement = this.page.locator('p').filter({hasText: outcomeMarker.checkout.orderPlacedNumberText});
-        await orderNumberElement.waitFor({state: 'visible', timeout: 10000});
+        // Select bank transfer payment method
+        await this.paymentMethodOptionCheck.check();
+        await this.waitForMagewireRequests();
 
-        const orderNumberText = await orderNumberElement.innerText();
+        // Accept terms and conditions
+        const termsCheckbox = this.page.getByRole('checkbox', { name: /Declaro que he leído y acepto los términos/i });
+        if (await termsCheckbox.isVisible({ timeout: 2000 })) {
+            await termsCheckbox.check();
+        }
+
+        // Ensure cookie banner is gone before clicking
+        await this.acceptAllCookies();
+
+        await this.placeOrderButton.click();
+        await this.waitForMagewireRequests();
+
+        // Wait for success page or order confirmation
+        const thankYouHeading = this.page.getByRole('heading', { name: /Gracias por comprar/i });
+        await expect(thankYouHeading, `Order success page should be visible`).toBeVisible({ timeout: 30000 });
+
+        let orderNumberLocator = this.page.locator('p').filter({ hasText: outcomeMarker.checkout.orderPlacedNumberText });
+        await expect(orderNumberLocator).toBeVisible({ timeout: 10000 });
+
+        // Extract order number from text
+        const orderNumberText = await orderNumberLocator.innerText();
         const orderNumber = orderNumberText.replace(/\D/g, '');
 
         console.log(`Order created successfully: ${orderNumber}`);
@@ -84,25 +95,25 @@ class CheckoutPage extends MagewireUtils {
     }
 
     async acceptAllCookies() {
-        const cookieBanner = this.page.locator('#iubenda-cs-banner');
-        await cookieBanner.waitFor({state: 'visible', timeout: 10000});
-
-        const acceptButtons = [
-            this.page.getByRole('button', {name: /Aceptar todo|Accept all|Aceitar todos|Akzeptieren alle/i}),
-            this.page.locator('[class*="iubenda-cs-accept-btn"]'),
-            this.page.locator('button:has-text("Aceptar")'),
-            this.page.locator('button:has-text("Accept")')
-        ];
-
-        for (const button of acceptButtons) {
-            if (await button.isVisible({timeout: 2000})) {
-                await button.click();
-                await this.page.waitForTimeout(1000);
-                console.log('Cookies accepted successfully');
-                return;
+        try {
+            const cookieBanner = this.page.locator('#iubenda-cs-banner');
+            if (await cookieBanner.isVisible({ timeout: 2000 })) {
+                const acceptButton = this.page.getByRole('button', { name: /Aceptar todas las cookies/i });
+                if (await acceptButton.isVisible({ timeout: 1000 })) {
+                    await acceptButton.click({ force: true });
+                    await this.page.waitForTimeout(500);
+                }
+                // Remove banner via JS if still visible
+                if (await cookieBanner.isVisible({ timeout: 500 })) {
+                    await this.page.evaluate(() => {
+                        const banner = document.getElementById('iubenda-cs-banner');
+                        if (banner) banner.remove();
+                    });
+                }
             }
+        } catch {
+            // Silently handle - banner may not exist
         }
-        console.log('No cookie accept button found, but banner is visible');
     }
 
     // ==============================================
@@ -111,13 +122,11 @@ class CheckoutPage extends MagewireUtils {
 
     async applyDiscountCodeCheckout(code: string) {
         if (await this.page.getByPlaceholder(UIReference.cart.discountInputFieldLabel).isHidden()) {
-            // discount field is not open.
             await this.showDiscountFormButton.click();
             await this.waitForMagewireRequests();
         }
 
         if (await this.page.getByText(outcomeMarker.cart.priceReducedSymbols).isVisible()) {
-            // discount is already active.
             let cancelCouponButton = this.page.getByRole('button', {name: UIReference.checkout.cancelDiscountButtonLabel});
             await cancelCouponButton.click();
             await this.waitForMagewireRequests();
@@ -136,7 +145,6 @@ class CheckoutPage extends MagewireUtils {
 
     async enterWrongCouponCode(code: string) {
         if (await this.page.getByPlaceholder(UIReference.cart.discountInputFieldLabel).isHidden()) {
-            // discount field is not open.
             await this.showDiscountFormButton.click();
             await this.waitForMagewireRequests();
         }
@@ -153,7 +161,6 @@ class CheckoutPage extends MagewireUtils {
 
     async removeDiscountCode() {
         if (await this.page.getByPlaceholder(UIReference.cart.discountInputFieldLabel).isHidden()) {
-            // discount field is not open.
             await this.showDiscountFormButton.click();
             await this.waitForMagewireRequests();
         }
@@ -175,9 +182,11 @@ class CheckoutPage extends MagewireUtils {
 
     async getPriceValue(element: Locator): Promise<number> {
         const priceText = await element.innerText();
-        // Extract just the price part after the $ symbol
-        const match = priceText.match(/\$\s*([\d.]+)/);
-        return match ? parseFloat(match[1]) : 0;
+        const match = priceText.match(/[\d,.]+\s*€/);
+        if (match) {
+            return parseFloat(match[0].replace(',', '.').replace('€', '').trim());
+        }
+        return 0;
     }
 
     async verifyPriceCalculations() {
@@ -190,8 +199,6 @@ class CheckoutPage extends MagewireUtils {
 
         expect(subtotal, `Subtotal (${subtotal}) should be greater than 0`).toBeGreaterThan(0);
         expect(shipping, `Shipping cost (${shipping}) should be greater than 0`).toBeGreaterThan(0);
-        // Enable when tax settings are set.
-        //expect(tax, `Tax (${tax}) should be greater than 0`).toBeGreaterThan(0);
         expect(grandTotal, `Grand total (${grandTotal}) should equal calculated total (${calculatedTotal})`).toBe(calculatedTotal);
     }
 
@@ -202,7 +209,6 @@ class CheckoutPage extends MagewireUtils {
                 break;
             case 'creditcard':
                 await this.paymentMethodOptionCreditCard.check();
-                // Fill credit card details
                 await this.creditCardNumberField.fill(inputValues.payment?.creditCard?.number || '4111111111111111');
                 await this.creditCardExpiryField.fill(inputValues.payment?.creditCard?.expiry || '12/25');
                 await this.creditCardCVVField.fill(inputValues.payment?.creditCard?.cvv || '123');
@@ -217,26 +223,72 @@ class CheckoutPage extends MagewireUtils {
     }
 
     async fillShippingAddress() {
-        // Fill required shipping address fields
-        await this.page.getByLabel(UIReference.personalInformation.firstNameLabel).fill(faker.person.firstName());
-        await this.page.getByLabel(UIReference.personalInformation.lastNameLabel).fill(faker.person.lastName());
-        await this.page.getByLabel(UIReference.newAddress.streetAddressLabel).first().fill(faker.location.streetAddress());
-        await this.page.getByLabel(UIReference.newAddress.zipCodeLabel).fill(faker.location.zipCode());
-        await this.page.getByLabel(UIReference.newAddress.cityNameLabel).fill(faker.location.city());
-        await this.page.getByLabel(UIReference.newAddress.phoneNumberLabel).fill(faker.phone.number());
+        // Fill email for guest checkout
+        const emailField = this.page.getByRole('textbox', { name: /Dirección de correo electrónico/i });
+        if (await emailField.isVisible({ timeout: 2000 })) {
+            const randomNum = Math.floor(Math.random() * 100000);
+            await emailField.fill(`testuser${randomNum}@gmail.com`);
+            // Trigger blur to validate
+            await emailField.blur();
+            await this.waitForMagewireRequests();
+        }
 
-        await this.page.getByLabel(UIReference.newAddress.countryLabel).selectOption('ES');
+        // Fill name fields
+        const firstNameField = this.page.getByRole('textbox', { name: /^Nombre \*/i });
+        const lastNameField = this.page.getByRole('textbox', { name: /Apellidos/i });
+
+        await firstNameField.fill(faker.person.firstName());
+        await lastNameField.fill(faker.person.lastName());
+
+        // Fill address
+        const addressField = this.page.getByRole('textbox', { name: /^Dirección \*/i });
+        await addressField.fill(faker.location.streetAddress());
+
+        // Fill postal code
+        const zipField = this.page.getByRole('textbox', { name: /Código Postal/i });
+        await zipField.fill('28001');
+
+        // Fill city
+        const cityField = this.page.getByRole('textbox', { name: /Ciudad/i });
+        await cityField.fill('Madrid');
+
+        // Select region/state
+        const regionSelect = this.page.getByRole('combobox', { name: /Estado\/provincia/i });
+        await regionSelect.selectOption({ label: 'Madrid' });
         await this.waitForMagewireRequests();
 
-        const regionSelect = this.page.locator('#shipping-region');
+        // Fill phone number
+        const phoneField = this.page.getByRole('textbox', { name: /Phone Number/i });
+        await phoneField.fill('+34612345678');
 
-        await this.page.waitForTimeout(3000);
-        await regionSelect.selectOption('161');
-
-        await this.page.waitForTimeout(2000);
-
-        console.log('Region selected');
         await this.waitForMagewireRequests();
+        console.log('Shipping address filled');
+    }
+
+    // Override waitForMagewireRequests to be more resilient
+    async waitForMagewireRequests(): Promise<void> {
+        try {
+            // Try to wait for Magewire messenger element (may not exist on this site)
+            await this.page.waitForFunction(() => {
+                const element = document.querySelector('.magewire\\.messenger');
+                return !element || getComputedStyle(element).height === '0px';
+            }, { timeout: 5000 });
+        } catch {
+            // Element doesn't exist, that's ok
+        }
+
+        try {
+            // Wait for any pending Magewire network requests
+            await this.page.waitForFunction(() => {
+                return !(window as any).magewire || !(window as any).magewire.processing;
+            }, { timeout: 5000 });
+        } catch {
+            // Magewire not present, that's ok
+        }
+
+        // Wait for network to be idle
+        await this.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+        await this.page.waitForTimeout(300);
     }
 }
 

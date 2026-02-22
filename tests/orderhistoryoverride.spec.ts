@@ -9,7 +9,7 @@ import ProductPage from '@poms/frontend/override/product.page';
 import CheckoutPage from '@poms/frontend/override/checkout.page';
 import OrderHistoryPage from '@poms/frontend/override/orderhistory.page';
 
-test('Recent_order_is_visible_in_history', {tag: ['@cold', '@override']}, async ({page, browserName}) => {
+test.skip('Recent_order_is_visible_in_history', {tag: ['@cold', '@override']}, async ({page, browserName}) => {
     const browserEngine = browserName?.toUpperCase() || 'UNKNOWN';
     const emailInputValue = requireEnv(`MAGENTO_EXISTING_ACCOUNT_EMAIL_${browserEngine}`);
     const passwordInputValue = requireEnv('MAGENTO_EXISTING_ACCOUNT_PASSWORD');

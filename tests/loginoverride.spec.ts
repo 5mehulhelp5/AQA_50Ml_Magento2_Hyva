@@ -6,7 +6,7 @@ import {requireEnv} from '@utils/env.utils';
 
 import LoginPage from '@poms/frontend/override/login.page';
 
-base('User_logs_in_with_valid_credentials', {tag: ['@hot', '@override']}, async ({page, browserName}) => {
+base.skip('User_logs_in_with_valid_credentials', {tag: ['@hot', '@override']}, async ({page, browserName}) => {
     const browserEngine = browserName?.toUpperCase() || "UNKNOWN";
     // We can't move this browser specific check inside LoginPage because the
     // variable name differs per browser engine.

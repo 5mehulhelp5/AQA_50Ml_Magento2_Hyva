@@ -18,10 +18,16 @@ class LoginPage {
 
     async login(email: string, password: string) {
         await this.page.goto(slugs.account.loginSlug);
+        await this.page.waitForLoadState('domcontentloaded');
+
         await this.loginEmailField.fill(email);
         await this.loginPasswordField.fill(password);
         // usage of .press("Enter") to prevent webkit issues with button.click();
         await this.loginButton.press("Enter");
+
+        // Wait for successful redirect to account page (not login page)
+        await this.page.waitForURL(/customer\/account(?!\/login)/, { timeout: 30000 });
+        await this.page.waitForLoadState('domcontentloaded');
     }
 
     async loginExpectError(email: string, password: string, errorMessage: string) {
